@@ -33,7 +33,6 @@
 ## Nalgún momento investigar outro conversor, xa que este non resolve 100%.
 ## Probar con: https://github.com/mate-desktop/mate-doc-utils/tree/master/xml2po
 ## Outra opción sería programar algo en Java, e facer un conversor de xml a xliff.
-## Programar en Java un aplicativo que xere unha memoria de tradución.
 
 
 function getXml(){
@@ -55,6 +54,19 @@ function getXml(){
 		cp -r ./ojs-2.4.2/${linea/en_US/gl_ES}/* ./xml-gl/${linea/en_US/gl_ES}/
     done < ficheiros.txt
     rm ficheiros.txt
+}
+
+function getTmx(){
+	## Esta función xera a tmx co traballo existente no locale que se quere traducir.
+	## Saca un listado dos ficheiros xml no locale en_US e supón que existen no locale a traducir.
+	## A continuación chama a un aplicativo externo programado en Java que xera a tmx.
+	find en_US -name "*.xml" > ficheiros_xml_eng.txt
+	sed -e 's/en_US/xml-gl/' ficheiros_xml_eng.txt > temporal.txt
+	sed -e 's/en_US/gl_ES/' temporal.txt > ficheiros_xml_gal.txt
+    rm temporal.txt
+	java XerarTMX ficheiros_xml_eng.txt ficheiros_xml_gal.txt
+    rm ficheiros_xml_eng.txt
+	rm ficheiros_xml_gal.txt
 }
 
 function xmlTOpo(){
@@ -90,6 +102,7 @@ function poTOxml(){
 param=$1
 [ $param = "" ] && exit 0
 [ $param = getXml ] && getXml
+[ $param = getTmx ] && getTmx
 [ $param = xml2po ] && xmlTOpo
 [ $param = po2xml ] && poTOxml
 
