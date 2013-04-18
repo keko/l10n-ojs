@@ -4,19 +4,17 @@ import javax.xml.transform.dom.DOMSource;
 import java.io.*;
 import javax.xml.transform.stream.*;
 import org.w3c.dom.*;
+import org.xml.sax.*;
 
 /*
 Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora só admite ficheiros xml que seguen a dtd locale do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
 O código dividiuse en dous métodos máis: emparellar_textos e escribir_tmx
 
-Tívose que retirar a dtd locale da cabeceira dos ficheiros xml porque se producía un erro ao non atopala o parser.
-<!DOCTYPE locale SYSTEM "../../lib/pkp/dtd/locale.dtd">
 
 TODO
 - Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs.
 - Explicar que se realiza nas diferentes partes do código.
-- Conseguir que o proxecto traballe cos ficheiros xml sen ter que borrarlle a dtd nas cabeceiras.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 - Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
 
@@ -59,22 +57,28 @@ public class XerarTMX {
 	public static void emparellar_textos(Document tmx, File file_eng, File file_gal)
 	{
 		try {
-			Document eng = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file_eng);
-			Document gal = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file_gal);
+			DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			// Como desactivar as dtd para non validar os ficheiros.
+			// http://stackoverflow.com/questions/243728/how-to-disable-dtd-at-runtime-in-javas-xpath
+			builder.setEntityResolver(new EntityResolver() {
+				@Override
+				public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
+					System.out.println("Ignorase a dtd " + publicId + ", " + systemId);
+					return new InputSource(new StringReader(""));
+				}
+			});
+			Document eng = builder.parse(file_eng);
+			Document gal = builder.parse(file_gal);
 			eng.getDocumentElement().normalize();
 			gal.getDocumentElement().normalize();
-
 			NodeList listaMensaxes = eng.getElementsByTagName("message");
 			NodeList listaTraducions = gal.getElementsByTagName("message");
-	
 			Element body = tmx.createElement("body");
-
 			for (int i = 0; i < listaMensaxes.getLength(); i ++) {
 				Node mensaxe = listaMensaxes.item(i);
 				if (mensaxe.getNodeType() == Node.ELEMENT_NODE) {
 			        Element elemento = (Element) mensaxe;
 					int j = 0;
-
 					while (j < listaTraducions.getLength() && !elemento.getAttribute("key").equals(((Element) listaTraducions.item(j)).getAttribute("key"))) {
 						j++;
 					}
@@ -87,7 +91,6 @@ public class XerarTMX {
 						tuvgl.setAttribute("xml:lang","gl");
 						segen = tmx.createElement("seg");
 						seggl = tmx.createElement("seg");
-
 						Node datoContenido = elemento.getFirstChild();
 						if(datoContenido!=null && (datoContenido.getNodeType()==Node.TEXT_NODE || datoContenido.getNodeType()==Node.CDATA_SECTION_NODE)) {
 							segen.appendChild(tmx.createTextNode(datoContenido.getNodeValue()));
@@ -102,7 +105,6 @@ public class XerarTMX {
 				}
 			}
 			tmx.appendChild(body);
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
