@@ -7,13 +7,19 @@ import org.w3c.dom.*;
 import org.xml.sax.*;
 
 /*
-Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora só admite ficheiros xml que seguen a dtd locale do proxecto ojs e crea unha memoria de tradución en formato tmx.
+Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
-O código dividiuse en dous métodos máis: emparellar_textos e escribir_tmx
+Soporte para as dtd: locale e toc
+
+O código dividiuse consta dos seguintes métodos:
+- emparellar_textos
+- emparellar_locale
+- emparellar_toc
+- escribir_tmx
 
 
 TODO
-- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs.
+- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: email_texts, version, countries, currencies e topic.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 - Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
@@ -32,6 +38,7 @@ public class XerarTMX {
 				BufferedReader bfiles_eng, bfiles_gal;
 				try {
 					file_tmx = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+					Element ebody = file_tmx.createElement("body");
 					bfiles_eng = new BufferedReader(new FileReader(files_eng));
 					bfiles_gal = new BufferedReader(new FileReader(files_gal));
 					String sfile_eng, sfile_gal;
@@ -42,9 +49,10 @@ public class XerarTMX {
 						ffile_eng = new File(sfile_eng);
 						ffile_gal = new File(sfile_gal);
 						if (ffile_eng.exists() && ffile_gal.exists()) {
-							emparellar_textos(file_tmx,ffile_eng,ffile_gal);
+							emparellar_textos(file_tmx,ebody, ffile_eng,ffile_gal);
 						}
 					}
+					file_tmx.appendChild(ebody);
 					escribir_tmx(file_tmx);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -54,8 +62,7 @@ public class XerarTMX {
 	}
 
 	// Emparella as cadeas en inglés e galego de dous ficheiros xml e vainas engadindo nun obxecto Document que representa un ficheiro xml en formato tmx
-	public static void emparellar_textos(Document tmx, File file_eng, File file_gal)
-	{
+	public static void emparellar_textos(Document tmx, Element body, File file_eng, File file_gal) {
 		try {
 			DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			// Como desactivar as dtd para non validar os ficheiros.
@@ -67,17 +74,34 @@ public class XerarTMX {
 					return new InputSource(new StringReader(""));
 				}
 			});
-			Document eng = builder.parse(file_eng);
-			Document gal = builder.parse(file_gal);
-			eng.getDocumentElement().normalize();
-			gal.getDocumentElement().normalize();
+			Document deng = builder.parse(file_eng);
+			Document dgal = builder.parse(file_gal);
+			deng.getDocumentElement().normalize();
+			dgal.getDocumentElement().normalize();
+			String dtd = deng.getDoctype().getName();
+			if (dtd.equals("locale")) {
+				emparellar_locale(tmx,body,deng,dgal);
+			}
+			else if (dtd.equals("toc")) {
+				emparellar_toc(tmx,body,deng,dgal);
+			}
+			else {
+				System.out.println("Falta tratar estas dtds: " + dtd);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	} 
+
+	public static void emparellar_locale(Document tmx, Element body, Document eng, Document gal) {
+		try {
 			NodeList listaMensaxes = eng.getElementsByTagName("message");
 			NodeList listaTraducions = gal.getElementsByTagName("message");
-			Element body = tmx.createElement("body");
+
 			for (int i = 0; i < listaMensaxes.getLength(); i ++) {
 				Node mensaxe = listaMensaxes.item(i);
 				if (mensaxe.getNodeType() == Node.ELEMENT_NODE) {
-			        Element elemento = (Element) mensaxe;
+				    Element elemento = (Element) mensaxe;
 					int j = 0;
 					while (j < listaTraducions.getLength() && !elemento.getAttribute("key").equals(((Element) listaTraducions.item(j)).getAttribute("key"))) {
 						j++;
@@ -104,17 +128,91 @@ public class XerarTMX {
 					}
 				}
 			}
-			tmx.appendChild(body);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	} 
+	}
+
+	public static void emparellar_toc(Document tmx, Element body, Document eng, Document gal) {
+		try {
+
+			NodeList listaTopic_source = eng.getElementsByTagName("topic");
+			NodeList listaTopic_target = gal.getElementsByTagName("topic");	
+			for (int i = 0; i < listaTopic_source.getLength(); i ++)
+			{
+				Node topic = listaTopic_source.item(i);
+				if (topic.getNodeType() == Node.ELEMENT_NODE)
+				{
+			        Element elemento = (Element) topic;
+					int j = 0;
+					while (j < listaTopic_target.getLength() && !elemento.getAttribute("id").equals(((Element) listaTopic_target.item(j)).getAttribute("id")))
+					{
+						j++;
+					}
+					if (j < listaTopic_target.getLength())
+					{
+						Element tu, tuven, tuvgl, segen, seggl;
+						tu = tmx.createElement("tu");
+						tuven = tmx.createElement("tuv");
+						tuven.setAttribute("xml:lang","en");
+						tuvgl = tmx.createElement("tuv");
+						tuvgl.setAttribute("xml:lang","gl");
+						segen = tmx.createElement("seg");
+						seggl = tmx.createElement("seg");
+						segen.appendChild(tmx.createTextNode(elemento.getAttribute("title")));
+						seggl.appendChild(tmx.createTextNode(((Element) listaTopic_target.item(j)).getAttribute("title")));
+						tuven.appendChild(segen);
+						tuvgl.appendChild(seggl);
+						tu.appendChild(tuven);
+						tu.appendChild(tuvgl);
+						body.appendChild(tu);
+					}
+				}
+			}
+
+			NodeList listaBreadcrumb_source = eng.getElementsByTagName("breadcrumb");
+			NodeList listaBreadcrumb_target = gal.getElementsByTagName("breadcrumb");
+			for (int i = 0; i < listaBreadcrumb_source.getLength(); i ++)
+			{
+				Node breadcrumb = listaBreadcrumb_source.item(i);
+				if (breadcrumb.getNodeType() == Node.ELEMENT_NODE)
+				{
+			        Element elemento = (Element) breadcrumb;
+					int j = 0;
+					while (j < listaBreadcrumb_target.getLength() && !elemento.getAttribute("url").equals(((Element) listaBreadcrumb_target.item(j)).getAttribute("url")))
+					{
+						j++;
+					}
+					if (j < listaBreadcrumb_target.getLength())
+					{
+						Element tu, tuven, tuvgl, segen, seggl;
+						tu = tmx.createElement("tu");
+						tuven = tmx.createElement("tuv");
+						tuven.setAttribute("xml:lang","en");
+						tuvgl = tmx.createElement("tuv");
+						tuvgl.setAttribute("xml:lang","gl");
+						segen = tmx.createElement("seg");
+						seggl = tmx.createElement("seg");
+						segen.appendChild(tmx.createTextNode(elemento.getAttribute("title")));
+						seggl.appendChild(tmx.createTextNode(((Element) listaBreadcrumb_target.item(j)).getAttribute("title")));
+						tuven.appendChild(segen);
+						tuvgl.appendChild(seggl);
+						tu.appendChild(tuven);
+						tu.appendChild(tuvgl);
+						body.appendChild(tu);
+					}
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	// Método que pasa o contido da memoria de tradución xerada nun obxecto Document a un ficheiro xml seguindo o formato tmx
 	// Código adaptado dun exemplo do blogue vidasConcurrentes
 	// http://blog.vidasconcurrentes.com/programacion/tratamiento-de-xml-en-java-lectura-y-escritura/
-	public static void escribir_tmx(Document tmx)
-	{
+	public static void escribir_tmx(Document tmx) {
 		try {
 			// pásase o XML ao ficheiro
 			TransformerFactory transFact = TransformerFactory.newInstance();
