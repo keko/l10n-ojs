@@ -9,17 +9,18 @@ import org.xml.sax.*;
 /*
 Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
-Soporte para as dtd: locale e toc
+Soporte para as dtd: locale, toc e email_texts
 
 O código dividiuse consta dos seguintes métodos:
 - emparellar_textos
 - emparellar_locale
 - emparellar_toc
+- emparellar_email_texts
 - escribir_tmx
 
 
 TODO
-- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: email_texts, version, countries, currencies e topic.
+- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version, countries, currencies e topic.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 - Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
@@ -79,15 +80,16 @@ public class XerarTMX {
 			deng.getDocumentElement().normalize();
 			dgal.getDocumentElement().normalize();
 			String dtd = deng.getDoctype().getName();
-			if (dtd.equals("locale")) {
+			if (dtd.equals("locale"))
 				emparellar_locale(tmx,body,deng,dgal);
-			}
-			else if (dtd.equals("toc")) {
-				emparellar_toc(tmx,body,deng,dgal);
-			}
-			else {
-				System.out.println("Falta tratar estas dtds: " + dtd);
-			}
+			else
+				if (dtd.equals("toc"))
+					emparellar_toc(tmx,body,deng,dgal);
+				else
+					if (dtd.equals("email_texts"))
+						emparellar_email_texts(tmx,body,deng,dgal);
+					else
+						System.out.println("Falta tratar estas dtds: " + dtd);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -208,6 +210,63 @@ public class XerarTMX {
 			e.printStackTrace();
 		}
 	}
+
+
+	public static void emparellar_email_texts(Document tmx, Element body, Document eng, Document gal) {
+		try {
+
+			NodeList listaEmail_source = eng.getElementsByTagName("email_text");
+			NodeList listaEmail_target = gal.getElementsByTagName("email_text");	
+			for (int i = 0; i < listaEmail_source.getLength(); i ++)
+			{
+				Node email_text = listaEmail_source.item(i);
+				if (email_text.getNodeType() == Node.ELEMENT_NODE)
+				{
+			        Element elemento = (Element) email_text;
+					int j = 0;
+					while (j < listaEmail_target.getLength() && !elemento.getAttribute("key").equals(((Element) listaEmail_target.item(j)).getAttribute("key")))
+					{
+						j++;
+					}
+					if (j < listaEmail_target.getLength())
+					{
+						NodeList campos_source = email_text.getChildNodes();
+						NodeList campos_target = listaEmail_target.item(j).getChildNodes(); 
+						for (int k = 0; k < campos_source.getLength(); k++) {
+
+							if (campos_source.item(k).getNodeType() == Node.ELEMENT_NODE && campos_target.item(k).hasChildNodes()) {
+								Element tu, tuven, tuvgl, segen, seggl;
+								tu = tmx.createElement("tu");
+								tuven = tmx.createElement("tuv");
+								tuven.setAttribute("xml:lang","en");
+								tuvgl = tmx.createElement("tuv");
+								tuvgl.setAttribute("xml:lang","gl");
+								segen = tmx.createElement("seg");
+								seggl = tmx.createElement("seg");
+								segen.appendChild(tmx.createTextNode(
+	campos_source.item(k).getFirstChild().getNodeValue()
+	));
+								seggl.appendChild(tmx.createTextNode(
+	campos_target.item(k).getFirstChild().getNodeValue()
+	));
+								tuven.appendChild(segen);
+								tuvgl.appendChild(seggl);
+								tu.appendChild(tuven);
+								tu.appendChild(tuvgl);
+								body.appendChild(tu);
+							}
+						}
+
+					}
+				}
+			}
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 
 	// Método que pasa o contido da memoria de tradución xerada nun obxecto Document a un ficheiro xml seguindo o formato tmx
 	// Código adaptado dun exemplo do blogue vidasConcurrentes
