@@ -9,18 +9,19 @@ import org.xml.sax.*;
 /*
 Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
-Soporte para as dtd: locale, toc e email_texts
+Soporte para as dtd: locale, toc, email_texts e currencies
 
 O código dividiuse consta dos seguintes métodos:
 - emparellar_textos
 - emparellar_locale
 - emparellar_toc
 - emparellar_email_texts
+- emparellar_currencies
 - escribir_tmx
 
 
 TODO
-- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version, countries, currencies e topic.
+- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version, countries e topic.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 - Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
@@ -89,7 +90,10 @@ public class XerarTMX {
 					if (dtd.equals("email_texts"))
 						emparellar_email_texts(tmx,body,deng,dgal);
 					else
-						System.out.println("Falta tratar estas dtds: " + dtd);
+						if (dtd.equals("currencies"))
+							emparellar_currencies(tmx,body,deng,dgal);
+						else
+							System.out.println("Falta tratar estas dtds: " + dtd);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -261,6 +265,48 @@ public class XerarTMX {
 				}
 			}
 
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	public static void emparellar_currencies(Document tmx, Element body, Document eng, Document gal) {
+		try {
+
+			NodeList listaCurrency_source = eng.getElementsByTagName("currency");
+			NodeList listaCurrency_target = gal.getElementsByTagName("currency");	
+			for (int i = 0; i < listaCurrency_source.getLength(); i ++)
+			{
+				Node currency = listaCurrency_source.item(i);
+				if (currency.getNodeType() == Node.ELEMENT_NODE)
+				{
+			        Element elemento = (Element) currency;
+					int j = 0;
+					while (j < listaCurrency_target.getLength() && !elemento.getAttribute("code_alpha").equals(((Element) listaCurrency_target.item(j)).getAttribute("code_alpha")))
+					{
+						j++;
+					}
+					if (j < listaCurrency_target.getLength())
+					{
+						Element tu, tuven, tuvgl, segen, seggl;
+						tu = tmx.createElement("tu");
+						tuven = tmx.createElement("tuv");
+						tuven.setAttribute("xml:lang","en");
+						tuvgl = tmx.createElement("tuv");
+						tuvgl.setAttribute("xml:lang","gl");
+						segen = tmx.createElement("seg");
+						seggl = tmx.createElement("seg");
+						segen.appendChild(tmx.createTextNode(elemento.getAttribute("name")));
+						seggl.appendChild(tmx.createTextNode(((Element) listaCurrency_target.item(j)).getAttribute("name")));
+						tuven.appendChild(segen);
+						tuvgl.appendChild(seggl);
+						tu.appendChild(tuven);
+						tu.appendChild(tuvgl);
+						body.appendChild(tu);
+					}
+				}
+			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
