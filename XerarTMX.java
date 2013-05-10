@@ -9,19 +9,20 @@ import org.xml.sax.*;
 /*
 Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
-Soporte para as dtd: locale, toc, email_texts e currencies
+Soporte para as dtd: locale, toc, email_texts, currencies e countries
 
-O código dividiuse consta dos seguintes métodos:
+Por agora o código consta dos seguintes métodos:
 - emparellar_textos
 - emparellar_locale
 - emparellar_toc
 - emparellar_email_texts
 - emparellar_currencies
+- emparellar_countries
 - escribir_tmx
 
 
 TODO
-- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version, countries e topic.
+- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version e topic.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 - Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
@@ -93,7 +94,10 @@ public class XerarTMX {
 						if (dtd.equals("currencies"))
 							emparellar_currencies(tmx,body,deng,dgal);
 						else
-							System.out.println("Falta tratar estas dtds: " + dtd);
+							if (dtd.equals("countries"))
+								emparellar_countries(tmx,body,deng,dgal);
+							else
+								System.out.println("Falta tratar estas dtds: " + dtd);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -299,6 +303,49 @@ public class XerarTMX {
 						seggl = tmx.createElement("seg");
 						segen.appendChild(tmx.createTextNode(elemento.getAttribute("name")));
 						seggl.appendChild(tmx.createTextNode(((Element) listaCurrency_target.item(j)).getAttribute("name")));
+						tuven.appendChild(segen);
+						tuvgl.appendChild(seggl);
+						tu.appendChild(tuven);
+						tu.appendChild(tuvgl);
+						body.appendChild(tu);
+					}
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	public static void emparellar_countries(Document tmx, Element body, Document eng, Document gal) {
+		try {
+
+			NodeList listaCountry_source = eng.getElementsByTagName("country");
+			NodeList listaCountry_target = gal.getElementsByTagName("country");	
+			for (int i = 0; i < listaCountry_source.getLength(); i ++)
+			{
+				Node country = listaCountry_source.item(i);
+				if (country.getNodeType() == Node.ELEMENT_NODE)
+				{
+			        Element elemento = (Element) country;
+					int j = 0;
+					while (j < listaCountry_target.getLength() && !elemento.getAttribute("code").equals(((Element) listaCountry_target.item(j)).getAttribute("code")))
+					{
+						j++;
+					}
+					if (j < listaCountry_target.getLength())
+					{
+						Element tu, tuven, tuvgl, segen, seggl;
+						tu = tmx.createElement("tu");
+						tuven = tmx.createElement("tuv");
+						tuven.setAttribute("xml:lang","en");
+						tuvgl = tmx.createElement("tuv");
+						tuvgl.setAttribute("xml:lang","gl");
+						segen = tmx.createElement("seg");
+						seggl = tmx.createElement("seg");
+						segen.appendChild(tmx.createTextNode(elemento.getAttribute("name")));
+						seggl.appendChild(tmx.createTextNode(((Element) listaCountry_target.item(j)).getAttribute("name")));
 						tuven.appendChild(segen);
 						tuvgl.appendChild(seggl);
 						tu.appendChild(tuven);
