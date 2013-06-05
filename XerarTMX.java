@@ -103,6 +103,27 @@ public class XerarTMX {
 		}
 	} 
 
+
+	public static void engadirTupla(Document tm, Element bd, String source, String target)
+	{
+		Element etiquetaTu, etiquetaTuvSource, etiquetaTuvTarget, etiquetaSegSource, etiquetaSegTarget;
+		etiquetaTu = tm.createElement("tu");
+		etiquetaTuvSource = tm.createElement("tuv");
+		etiquetaTuvSource.setAttribute("xml:lang","en");
+		etiquetaTuvTarget = tm.createElement("tuv");
+		etiquetaTuvTarget.setAttribute("xml:lang","gl");
+		etiquetaSegSource = tm.createElement("seg");
+		etiquetaSegTarget = tm.createElement("seg");
+		etiquetaSegSource.appendChild(tm.createTextNode(source));
+		etiquetaSegTarget.appendChild(tm.createTextNode(target));
+		etiquetaTuvSource.appendChild(etiquetaSegSource);
+		etiquetaTuvTarget.appendChild(etiquetaSegTarget);
+		etiquetaTu.appendChild(etiquetaTuvSource);
+		etiquetaTu.appendChild(etiquetaTuvTarget);
+		bd.appendChild(etiquetaTu);
+	}
+
+
 	public static void emparellar_locale(Document tmx, Element body, Document eng, Document gal) {
 		try {
 			NodeList listaMensaxes = eng.getElementsByTagName("message");
@@ -117,24 +138,9 @@ public class XerarTMX {
 						j++;
 					}
 					if (j < listaTraducions.getLength()) {
-						Element tu, tuven, tuvgl, segen, seggl;
-						tu = tmx.createElement("tu");
-						tuven = tmx.createElement("tuv");
-						tuven.setAttribute("xml:lang","en");
-						tuvgl = tmx.createElement("tuv");
-						tuvgl.setAttribute("xml:lang","gl");
-						segen = tmx.createElement("seg");
-						seggl = tmx.createElement("seg");
 						Node datoContenido = elemento.getFirstChild();
-						if(datoContenido!=null && (datoContenido.getNodeType()==Node.TEXT_NODE || datoContenido.getNodeType()==Node.CDATA_SECTION_NODE)) {
-							segen.appendChild(tmx.createTextNode(datoContenido.getNodeValue()));
-							seggl.appendChild(tmx.createTextNode(((Element) listaTraducions.item(j)).getFirstChild().getNodeValue()));
-							tuven.appendChild(segen);
-							tuvgl.appendChild(seggl);
-							tu.appendChild(tuven);
-							tu.appendChild(tuvgl);
-							body.appendChild(tu);
-						}
+						if(datoContenido!=null && (datoContenido.getNodeType()==Node.TEXT_NODE || datoContenido.getNodeType()==Node.CDATA_SECTION_NODE))
+							engadirTupla(tmx,body,datoContenido.getNodeValue(),((Element) listaTraducions.item(j)).getFirstChild().getNodeValue());
 					}
 				}
 			}
@@ -143,9 +149,9 @@ public class XerarTMX {
 		}
 	}
 
+
 	public static void emparellar_toc(Document tmx, Element body, Document eng, Document gal) {
 		try {
-
 			NodeList listaTopic_source = eng.getElementsByTagName("topic");
 			NodeList listaTopic_target = gal.getElementsByTagName("topic");	
 			for (int i = 0; i < listaTopic_source.getLength(); i ++)
@@ -156,30 +162,11 @@ public class XerarTMX {
 			        Element elemento = (Element) topic;
 					int j = 0;
 					while (j < listaTopic_target.getLength() && !elemento.getAttribute("id").equals(((Element) listaTopic_target.item(j)).getAttribute("id")))
-					{
 						j++;
-					}
 					if (j < listaTopic_target.getLength())
-					{
-						Element tu, tuven, tuvgl, segen, seggl;
-						tu = tmx.createElement("tu");
-						tuven = tmx.createElement("tuv");
-						tuven.setAttribute("xml:lang","en");
-						tuvgl = tmx.createElement("tuv");
-						tuvgl.setAttribute("xml:lang","gl");
-						segen = tmx.createElement("seg");
-						seggl = tmx.createElement("seg");
-						segen.appendChild(tmx.createTextNode(elemento.getAttribute("title")));
-						seggl.appendChild(tmx.createTextNode(((Element) listaTopic_target.item(j)).getAttribute("title")));
-						tuven.appendChild(segen);
-						tuvgl.appendChild(seggl);
-						tu.appendChild(tuven);
-						tu.appendChild(tuvgl);
-						body.appendChild(tu);
-					}
+						engadirTupla(tmx,body,elemento.getAttribute("title"),((Element) listaTopic_target.item(j)).getAttribute("title"));
 				}
 			}
-
 			NodeList listaBreadcrumb_source = eng.getElementsByTagName("breadcrumb");
 			NodeList listaBreadcrumb_target = gal.getElementsByTagName("breadcrumb");
 			for (int i = 0; i < listaBreadcrumb_source.getLength(); i ++)
@@ -190,30 +177,11 @@ public class XerarTMX {
 			        Element elemento = (Element) breadcrumb;
 					int j = 0;
 					while (j < listaBreadcrumb_target.getLength() && !elemento.getAttribute("url").equals(((Element) listaBreadcrumb_target.item(j)).getAttribute("url")))
-					{
 						j++;
-					}
 					if (j < listaBreadcrumb_target.getLength())
-					{
-						Element tu, tuven, tuvgl, segen, seggl;
-						tu = tmx.createElement("tu");
-						tuven = tmx.createElement("tuv");
-						tuven.setAttribute("xml:lang","en");
-						tuvgl = tmx.createElement("tuv");
-						tuvgl.setAttribute("xml:lang","gl");
-						segen = tmx.createElement("seg");
-						seggl = tmx.createElement("seg");
-						segen.appendChild(tmx.createTextNode(elemento.getAttribute("title")));
-						seggl.appendChild(tmx.createTextNode(((Element) listaBreadcrumb_target.item(j)).getAttribute("title")));
-						tuven.appendChild(segen);
-						tuvgl.appendChild(seggl);
-						tu.appendChild(tuven);
-						tu.appendChild(tuvgl);
-						body.appendChild(tu);
-					}
+						engadirTupla(tmx,body,elemento.getAttribute("title"),((Element) listaBreadcrumb_target.item(j)).getAttribute("title"));
 				}
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -222,7 +190,6 @@ public class XerarTMX {
 
 	public static void emparellar_email_texts(Document tmx, Element body, Document eng, Document gal) {
 		try {
-
 			NodeList listaEmail_source = eng.getElementsByTagName("email_text");
 			NodeList listaEmail_target = gal.getElementsByTagName("email_text");	
 			for (int i = 0; i < listaEmail_source.getLength(); i ++)
@@ -241,34 +208,12 @@ public class XerarTMX {
 						NodeList campos_source = email_text.getChildNodes();
 						NodeList campos_target = listaEmail_target.item(j).getChildNodes(); 
 						for (int k = 0; k < campos_source.getLength(); k++) {
-
-							if (campos_source.item(k).getNodeType() == Node.ELEMENT_NODE && campos_target.item(k).hasChildNodes()) {
-								Element tu, tuven, tuvgl, segen, seggl;
-								tu = tmx.createElement("tu");
-								tuven = tmx.createElement("tuv");
-								tuven.setAttribute("xml:lang","en");
-								tuvgl = tmx.createElement("tuv");
-								tuvgl.setAttribute("xml:lang","gl");
-								segen = tmx.createElement("seg");
-								seggl = tmx.createElement("seg");
-								segen.appendChild(tmx.createTextNode(
-	campos_source.item(k).getFirstChild().getNodeValue()
-	));
-								seggl.appendChild(tmx.createTextNode(
-	campos_target.item(k).getFirstChild().getNodeValue()
-	));
-								tuven.appendChild(segen);
-								tuvgl.appendChild(seggl);
-								tu.appendChild(tuven);
-								tu.appendChild(tuvgl);
-								body.appendChild(tu);
-							}
+							if (campos_source.item(k).getNodeType() == Node.ELEMENT_NODE && campos_target.item(k).hasChildNodes())
+								engadirTupla(tmx,body,campos_source.item(k).getFirstChild().getNodeValue(),campos_target.item(k).getFirstChild().getNodeValue());
 						}
-
 					}
 				}
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -277,7 +222,6 @@ public class XerarTMX {
 
 	public static void emparellar_currencies(Document tmx, Element body, Document eng, Document gal) {
 		try {
-
 			NodeList listaCurrency_source = eng.getElementsByTagName("currency");
 			NodeList listaCurrency_target = gal.getElementsByTagName("currency");	
 			for (int i = 0; i < listaCurrency_source.getLength(); i ++)
@@ -292,26 +236,9 @@ public class XerarTMX {
 						j++;
 					}
 					if (j < listaCurrency_target.getLength())
-					{
-						Element tu, tuven, tuvgl, segen, seggl;
-						tu = tmx.createElement("tu");
-						tuven = tmx.createElement("tuv");
-						tuven.setAttribute("xml:lang","en");
-						tuvgl = tmx.createElement("tuv");
-						tuvgl.setAttribute("xml:lang","gl");
-						segen = tmx.createElement("seg");
-						seggl = tmx.createElement("seg");
-						segen.appendChild(tmx.createTextNode(elemento.getAttribute("name")));
-						seggl.appendChild(tmx.createTextNode(((Element) listaCurrency_target.item(j)).getAttribute("name")));
-						tuven.appendChild(segen);
-						tuvgl.appendChild(seggl);
-						tu.appendChild(tuven);
-						tu.appendChild(tuvgl);
-						body.appendChild(tu);
-					}
+						engadirTupla(tmx,body,elemento.getAttribute("name"),((Element) listaCurrency_target.item(j)).getAttribute("name"));
 				}
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -320,7 +247,6 @@ public class XerarTMX {
 
 	public static void emparellar_countries(Document tmx, Element body, Document eng, Document gal) {
 		try {
-
 			NodeList listaCountry_source = eng.getElementsByTagName("country");
 			NodeList listaCountry_target = gal.getElementsByTagName("country");	
 			for (int i = 0; i < listaCountry_source.getLength(); i ++)
@@ -335,26 +261,9 @@ public class XerarTMX {
 						j++;
 					}
 					if (j < listaCountry_target.getLength())
-					{
-						Element tu, tuven, tuvgl, segen, seggl;
-						tu = tmx.createElement("tu");
-						tuven = tmx.createElement("tuv");
-						tuven.setAttribute("xml:lang","en");
-						tuvgl = tmx.createElement("tuv");
-						tuvgl.setAttribute("xml:lang","gl");
-						segen = tmx.createElement("seg");
-						seggl = tmx.createElement("seg");
-						segen.appendChild(tmx.createTextNode(elemento.getAttribute("name")));
-						seggl.appendChild(tmx.createTextNode(((Element) listaCountry_target.item(j)).getAttribute("name")));
-						tuven.appendChild(segen);
-						tuvgl.appendChild(seggl);
-						tu.appendChild(tuven);
-						tu.appendChild(tuvgl);
-						body.appendChild(tu);
-					}
+						engadirTupla(tmx,body,elemento.getAttribute("name"),((Element) listaCountry_target.item(j)).getAttribute("name"));
 				}
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
