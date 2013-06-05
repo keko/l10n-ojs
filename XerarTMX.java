@@ -7,7 +7,7 @@ import org.w3c.dom.*;
 import org.xml.sax.*;
 
 /*
-Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
+Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola xunto co código de idioma de orixe e o de destino. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
 Soporte para as dtd: locale, toc, email_texts, currencies e countries
 
@@ -19,41 +19,50 @@ Por agora o código consta dos seguintes métodos:
 - emparellar_currencies
 - emparellar_countries
 - escribir_tmx
+- engadirTupla
 
 
 TODO
 - Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version e topic.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
-- Pasar o idioma ao que se traduce por argumento, por agora só está pensado para o galego. Posiblemente o orixe, tamén se teña que pasar por argumento.
-
 */
 
 
 public class XerarTMX {
 
-	public static void main(String argv[]) {
-		if (argv.length == 2) {
+	static String sourceLocale, targetLocale;
+
+	public static void main(String argv[])
+	{
+		if (argv.length == 4)
+		{
 			File files_eng = new File(argv[0]);
 			File files_gal = new File(argv[1]);
-			if (files_eng.exists() && files_gal.exists()) {
+			// Variable que almacena o código do idioma de orixe
+			sourceLocale = argv[2];
+			// Variable que almacena o código do idioma de destino
+			targetLocale = argv[3];
+			if (files_eng.exists() && files_gal.exists())
+			{
 				Document file_tmx;
 				BufferedReader bfiles_eng, bfiles_gal;
-				try {
+				try
+				{
 					file_tmx = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 					Element ebody = file_tmx.createElement("body");
 					bfiles_eng = new BufferedReader(new FileReader(files_eng));
 					bfiles_gal = new BufferedReader(new FileReader(files_gal));
 					String sfile_eng, sfile_gal;
-					while(bfiles_eng.ready() && bfiles_gal.ready()) {
+					while(bfiles_eng.ready() && bfiles_gal.ready())
+					{
 						sfile_eng = bfiles_eng.readLine();
 						sfile_gal = bfiles_gal.readLine();
 						File ffile_eng, ffile_gal;
 						ffile_eng = new File(sfile_eng);
 						ffile_gal = new File(sfile_gal);
-						if (ffile_eng.exists() && ffile_gal.exists()) {
+						if (ffile_eng.exists() && ffile_gal.exists())
 							emparellar_textos(file_tmx,ebody, ffile_eng,ffile_gal);
-						}
 					}
 					file_tmx.appendChild(ebody);
 					escribir_tmx(file_tmx);
@@ -61,7 +70,8 @@ public class XerarTMX {
 					e.printStackTrace();
 				}
 			}
-		}
+		} else
+			System.out.println("Usage: java XerarTMX <list-source-files> <list-target-files> <source-locale> <target-locale>\n\nXerarTMX: error: You need to give four parameters. A files list of source, a files list of target, a locale code of source and an locale code of target\n\nFor example: java XerarTMX files-xml-en_US files-xml-gl_ES en_US gl_ES");
 	}
 
 	// Emparella as cadeas en inglés e galego de dous ficheiros xml e vainas engadindo nun obxecto Document que representa un ficheiro xml en formato tmx
@@ -109,9 +119,9 @@ public class XerarTMX {
 		Element etiquetaTu, etiquetaTuvSource, etiquetaTuvTarget, etiquetaSegSource, etiquetaSegTarget;
 		etiquetaTu = tm.createElement("tu");
 		etiquetaTuvSource = tm.createElement("tuv");
-		etiquetaTuvSource.setAttribute("xml:lang","en");
+		etiquetaTuvSource.setAttribute("xml:lang",sourceLocale);
 		etiquetaTuvTarget = tm.createElement("tuv");
-		etiquetaTuvTarget.setAttribute("xml:lang","gl");
+		etiquetaTuvTarget.setAttribute("xml:lang",targetLocale);
 		etiquetaSegSource = tm.createElement("seg");
 		etiquetaSegTarget = tm.createElement("seg");
 		etiquetaSegSource.appendChild(tm.createTextNode(source));
@@ -289,7 +299,7 @@ public class XerarTMX {
 			DOMSource domSource = new DOMSource(tmx);
 			trans.transform(domSource, sr);
 			// crease ficheiro para escribir en modo texto
-			PrintWriter writer = new PrintWriter(new FileWriter("tmx_ojs.tmx"));
+			PrintWriter writer = new PrintWriter(new FileWriter("tmxOJS_"+sourceLocale+"_"+targetLocale+".tmx"));
 			// escríbese toda a árbore no ficheiro
 			writer.println(sw.toString());
 			// pechase o ficheiro
