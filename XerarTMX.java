@@ -9,7 +9,7 @@ import org.xml.sax.*;
 /*
 Agora o aplicativo lee dous ficheiros que se lle pasan como argumentos por consola xunto co código de idioma de orixe e o de destino. Estes ficheiros conteñen a lista de ficheiros que hai que emparellar. En ver de emparellar dous ficheiros, emparella un listado de ficheiros xml. Por agora non admite todos os ficheiros xml do proxecto ojs e crea unha memoria de tradución en formato tmx.
 
-Soporte para as dtd: locale, toc, email_texts, currencies e countries
+Soporte para as dtd: locale, toc, email_texts, currencies, countries e topic
 
 Por agora o código consta dos seguintes métodos:
 - emparellar_textos
@@ -18,12 +18,13 @@ Por agora o código consta dos seguintes métodos:
 - emparellar_email_texts
 - emparellar_currencies
 - emparellar_countries
+- emparellar_topic
 - escribir_tmx
 - engadirTupla
 
 
 TODO
-- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: version e topic.
+- Darlle soporte a máis dtd que se usan nos ficheiros de tradución do proxecto ojs: só falta version.
 - Explicar que se realiza nas diferentes partes do código.
 - Mellorar a cabeceira do ficheiro tmx xerado para adaptala ao estándar.
 */
@@ -107,7 +108,10 @@ public class XerarTMX {
 							if (dtd.equals("countries"))
 								emparellar_countries(tmx,body,deng,dgal);
 							else
-								System.out.println("Falta tratar estas dtds: " + dtd);
+								if (dtd.equals("topic"))
+									emparellar_topic(tmx,body,deng,dgal);
+								else
+									System.out.println("Falta tratar estas dtds: " + dtd);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -272,6 +276,29 @@ public class XerarTMX {
 					}
 					if (j < listaCountry_target.getLength())
 						engadirTupla(tmx,body,elemento.getAttribute("name"),((Element) listaCountry_target.item(j)).getAttribute("name"));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	public static void emparellar_topic(Document tmx, Element body, Document eng, Document gal) {
+		try {
+			NodeList listaSectionSource = eng.getElementsByTagName("section");
+			NodeList listaSectionTarget = gal.getElementsByTagName("section");
+			for (int i = 0; i < listaSectionSource.getLength() && i < listaSectionTarget.getLength(); i ++) {
+				Node sectionSource = listaSectionSource.item(i);
+				Node sectionTarget = listaSectionTarget.item(i);
+				if (sectionSource.hasAttributes() && sectionSource.getNodeType() == Node.ELEMENT_NODE && sectionTarget.hasAttributes() && sectionTarget.getNodeType() == Node.ELEMENT_NODE)
+					engadirTupla(tmx,body,((Element) sectionSource).getAttribute("title"),((Element) sectionTarget).getAttribute("title"));
+				NodeList source = sectionSource.getChildNodes();
+				NodeList target = sectionTarget.getChildNodes();
+				for (int j = 0; j < source.getLength() && j < target.getLength(); j ++)
+				{
+					if (source.item(j).getNodeType() == Node.CDATA_SECTION_NODE && target.item(j).getNodeType() == Node.CDATA_SECTION_NODE)
+						engadirTupla(tmx,body,source.item(j).getNodeValue(),target.item(j).getNodeValue());
 				}
 			}
 		} catch (Exception e) {
